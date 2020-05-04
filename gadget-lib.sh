@@ -67,6 +67,7 @@ function create_mass_storage() {
         echo "invalid option: $1"
         ;;
     esac
+    shift
   done
 
   mkdir -p ${CONFIG_DIR}
