@@ -37,7 +37,7 @@ function check_usb_gadget () {
 
 function create_mass_storage() {
   GADGET_NAME="$1"
-  IMAGE_FILE="$2"
+  IMAGE_FILE="$(cd $(dirname $2) && pwd)/$(basename $2)"
   shift 2
 
   FUNCTION_TYPE="mass_storage"
