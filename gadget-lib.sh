@@ -35,6 +35,46 @@ function check_usb_gadget () {
   return 0
 }
 
+function new_id () {
+  GADGET_NAME="$1"
+  FUNCTION_TYPE="$2"
+  FUNCTION_NAME="0"
+
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+
+  while [ -d "${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; do
+    FUNCTION_NAME=$(expr ${FUNCTION_NAME} + 1)
+  done
+
+  echo "${FUNCTION_NAME}"
+}
+
+function get_hid_device () {
+  GADGET_NAME="$1"
+  FUNCTION_TYPE_NAME="$2"
+
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE_NAME}"
+
+  if [ ! -e ${FUNCTION_DIR}/dev ]; then
+    echo "Invalid function id" >&2
+    return 1
+  fi
+
+  MAJOR_NUM=$(cat ${FUNCTION_DIR}/dev | cut -d: -f1)
+  MINOR_NUM=$(cat ${FUNCTION_DIR}/dev | cut -d: -f2)
+
+  DEVICE=$(ls -l /dev/* | sed -E "s/ +/ /g" | grep -E "^c([^ ]* ){4}${MAJOR_NUM}, ${MINOR_NUM} " | head -1 | rev | cut -d' ' -f1 | rev)
+
+  if [ -z "${DEVICE}" ]; then
+    echo "Device not found" >&2
+    return 1
+  fi
+
+  echo "${DEVICE}"
+  return 0
+}
+
 function create_mass_storage() {
   if [ ! -f "$2" ]; then
     echo "Cannot open image" >&2
@@ -46,7 +86,7 @@ function create_mass_storage() {
   shift 2
 
   FUNCTION_TYPE="mass_storage"
-  FUNCTION_NAME="0"
+  FUNCTION_NAME=$(new_id ${GADGET_NAME} ${FUNCTION_TYPE})
 
   create_function ${GADGET_NAME} ${FUNCTION_TYPE} ${FUNCTION_NAME}
 
@@ -84,6 +124,62 @@ function create_mass_storage() {
   done
 
   echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
+
+  mkdir -p ${CONFIG_DIR}
+
+  if [ ! -d "${CONFIG_DIR}/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; then
+    ln -s ${FUNCTION_DIR} ${CONFIG_DIR}/
+  fi
+
+  echo ${FUNCTION_TYPE}.${FUNCTION_NAME}
+
+  return
+}
+
+function create_keyboard () {
+  GADGET_NAME="$1"
+
+  FUNCTION_TYPE="hid"
+  FUNCTION_NAME=$(new_id ${GADGET_NAME} ${FUNCTION_TYPE})
+
+  create_function ${GADGET_NAME} ${FUNCTION_TYPE} ${FUNCTION_NAME}
+
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+  CONFIG_DIR="${GADGET_DIR}/configs/c.1"
+  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+
+  echo 1 > ${FUNCTION_DIR}/protocol
+  echo 1 > ${FUNCTION_DIR}/subclass
+  echo 8 > ${FUNCTION_DIR}/report_length
+  echo -ne "\\x05\\x01\\x09\\x06\\xa1\\x01\\x05\\x07\\x19\\xe0\\x29\\xe7\\x15\\x00\\x25\\x01\\x75\\x01\\x95\\x08\\x81\\x02\\x95\\x01\\x75\\x08\\x81\\x03\\x95\\x05\\x75\\x01\\x05\\x08\\x19\\x01\\x29\\x05\\x91\\x02\\x95\\x01\\x75\\x03\\x91\\x03\\x95\\x06\\x75\\x08\\x15\\x00\\x25\\x65\\x05\\x07\\x19\\x00\\x29\\x65\\x81\\x00\\xc0" > ${FUNCTION_DIR}/report_desc
+
+  mkdir -p ${CONFIG_DIR}
+
+  if [ ! -d "${CONFIG_DIR}/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; then
+    ln -s ${FUNCTION_DIR} ${CONFIG_DIR}/
+  fi
+
+  echo ${FUNCTION_TYPE}.${FUNCTION_NAME}
+
+  return
+}
+
+function create_mouse () {
+  GADGET_NAME="$1"
+
+  FUNCTION_TYPE="hid"
+  FUNCTION_NAME=$(new_id ${GADGET_NAME} ${FUNCTION_TYPE})
+
+  create_function ${GADGET_NAME} ${FUNCTION_TYPE} ${FUNCTION_NAME}
+
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+  CONFIG_DIR="${GADGET_DIR}/configs/c.1"
+  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+
+  echo 1 > ${FUNCTION_DIR}/protocol
+  echo 1 > ${FUNCTION_DIR}/subclass
+  echo 8 > ${FUNCTION_DIR}/report_length
+  echo -ne "\\x05\\x01\\x09\\x02\\xa1\\x01\\x09\\x01\\xa1\\x00\\x05\\x09\\x19\\x01\\x29\\x03\\x15\\x00\\x25\\x01\\x95\\x03\\x75\\x01\\x81\\x02\\x95\\x01\\x75\\x05\\x81\\x01\\x05\\x01\\x09\\x30\\x09\\x31\\x15\\x81\\x25\\x7f\\x75\\x08\\x95\\x02\\x81\\x06\\xc0\\xc0" > ${FUNCTION_DIR}/report_desc
 
   mkdir -p ${CONFIG_DIR}
 

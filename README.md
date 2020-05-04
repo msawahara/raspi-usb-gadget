@@ -21,6 +21,9 @@ stop
 # ./gadget.sh create
 # ./gadget.sh list
 # ./gadget.sh mass_storage <image file> [options]
+# ./gadget.sh keyboard
+# ./gadget.sh mouse
+# ./gadget.sh get_hid_device <name>
 # ./gadget.sh remove <name1> [name2] ...
 # ./gadget.sh enable
 # ./gadget.sh disable
