@@ -94,13 +94,12 @@ function create_function () {
 
 function remove_function () {
   GADGET_NAME="$1"
-  FUNCTION_TYPE="$2"
-  FUNCTION_NAME="$3"
+  FUNCTION_TYPE_NAME="$2"
 
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
-  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE_NAME}"
 
-  rm -f "${GADGET_DIR}/configs/c.1/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+  rm -f "${GADGET_DIR}/configs/c.1/${FUNCTION_TYPE_NAME}"
   rmdir "${FUNCTION_DIR}"
 
   return
