@@ -10,11 +10,17 @@ case "$command" in
     check_usb_gadget || die
     create_gadget g0
     ;;
+  "list")
+    list_gadget g0
+    ;;
   "mass_storage")
     create_mass_storage g0 "$@"
     ;;
   "remove")
-    remove_function g0 "$@"
+    while [ "$1" != "" ]; do
+      remove_function g0 "$1"
+      shift
+    done
     ;;
   "enable")
     enable_gadget g0
@@ -26,7 +32,7 @@ case "$command" in
     remove_gadget g0
     ;;
   * )
-    echo error
+    echo Invalid option. Please see README.md >&2
     ;;
 esac
 
