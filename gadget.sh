@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. hid-libs.sh
+. gadget-lib.sh
 
 command=$1
 shift
