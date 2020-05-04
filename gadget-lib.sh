@@ -36,6 +36,11 @@ function check_usb_gadget () {
 }
 
 function create_mass_storage() {
+  if [ ! -f "$2" ]; then
+    echo "Cannot open image" >&2
+    exit 2
+  fi
+
   GADGET_NAME="$1"
   IMAGE_FILE="$(cd $(dirname $2) && pwd)/$(basename $2)"
   shift 2
@@ -49,7 +54,12 @@ function create_mass_storage() {
   CONFIG_DIR="${GADGET_DIR}/configs/c.1"
   FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
 
-  echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
+  # set default value
+  echo 1 > ${FUNCTION_DIR}/stall
+  echo 0 > ${FUNCTION_DIR}/lun.0/removable
+  echo 0 > ${FUNCTION_DIR}/lun.0/ro
+  echo 0 > ${FUNCTION_DIR}/lun.0/cdrom
+  echo 0 > ${FUNCTION_DIR}/lun.0/nofua
 
   while [ "$1" != "" ];
   do
@@ -63,18 +73,25 @@ function create_mass_storage() {
       "cdrom")
         echo 1 > ${FUNCTION_DIR}/lun.0/cdrom
         ;;
+      "nofua")
+        echo 1 > ${FUNCTION_DIR}/lun.0/nofua
+        ;;
       *)
-        echo "invalid option: $1"
+        echo "invalid option: $1" >&2
         ;;
     esac
     shift
   done
+
+  echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
 
   mkdir -p ${CONFIG_DIR}
 
   if [ ! -d "${CONFIG_DIR}/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; then
     ln -s ${FUNCTION_DIR} ${CONFIG_DIR}/
   fi
+
+  echo ${FUNCTION_TYPE}.${FUNCTION_NAME}
 
   return
 }
@@ -94,21 +111,30 @@ function create_function () {
 
 function remove_function () {
   GADGET_NAME="$1"
-  FUNCTION_TYPE="$2"
-  FUNCTION_NAME="$3"
+  FUNCTION_TYPE_NAME="$2"
 
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
-  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+  FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE_NAME}"
 
-  rm -f "${GADGET_DIR}/configs/c.1/${FUNCTION_TYPE}.${FUNCTION_NAME}"
+  if [ ! -d ${FUNCTION_DIR} ]; then
+    echo "Invalid function name: ${FUNCTION_TYPE_NAME}" >&2
+    return 1
+  fi
+
+  rm -f "${GADGET_DIR}/configs/c.1/${FUNCTION_TYPE_NAME}"
   rmdir "${FUNCTION_DIR}"
 
-  return
+  return 0
 }
 
 function create_gadget () {
   GADGET_NAME="$1"
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+
+  if [ -d ${GADGET_DIR} ]; then
+    echo "Already exists: ${GADGET_NAME}" >&2
+    return 1
+  fi
 
   mkdir -p ${GADGET_DIR}
 
@@ -138,10 +164,26 @@ function remove_gadget () {
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
   CONFIG_DIR="${GADGET_DIR}/configs/c.1"
 
-  disable_gadget "${GADGET_NAME}"
+  if [ ! -d ${GADGET_DIR} ]; then
+    echo "Invalid gadget name: ${GADGET_NAME}" >&2
+    return 1
+  fi
 
-  rmdir ${CONFIG_DIR}
-  rmdir ${GADGET_DIR}/strings/*
+  if [ ! -z $(list_gadget ${GADGET_NAME}) ]; then
+    echo "Function is existing" >&2
+    return 2
+  fi
+
+  disable_gadget ${GADGET_NAME}
+
+  if [ -d ${CONFIG_DIR} ]; then
+    rmdir ${CONFIG_DIR} || die
+  fi
+
+  if [ -d ${GADGET_DIR}/strings ]; then
+    rmdir ${GADGET_DIR}/strings/* || die
+  fi
+
   rmdir ${GADGET_DIR}
 
   return
@@ -150,6 +192,11 @@ function remove_gadget () {
 function enable_gadget () {
   GADGET_NAME="$1"
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+
+  if [ ! -z $(cat ${GADGET_DIR}/UDC) ]; then
+    echo "Gadget is already enabled" >&2
+    return
+  fi
 
   ls /sys/class/udc > ${GADGET_DIR}/UDC
 
@@ -160,7 +207,24 @@ function disable_gadget () {
   GADGET_NAME="$1"
   GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
 
+  if [ -z $(cat ${GADGET_DIR}/UDC) ]; then
+    return
+  fi
+
   echo "" > ${GADGET_DIR}/UDC
+
+  return
+}
+
+function list_gadget () {
+  GADGET_NAME="$1"
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+
+  if [ ! -d "${GADGET_DIR}/functions" ]; then
+    return
+  fi
+
+  ls /sys/kernel/config/usb_gadget/g0/functions | grep -e ".*\..*" 2> /dev/null
 
   return
 }
