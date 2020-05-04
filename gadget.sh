@@ -16,6 +16,15 @@ case "$command" in
   "mass_storage")
     create_mass_storage g0 "$@"
     ;;
+  "keyboard")
+    create_keyboard g0
+    ;;
+  "mouse")
+    create_mouse g0
+    ;;
+  "get_hid_device")
+    get_hid_device g0 "$@"
+    ;;
   "remove")
     while [ "$1" != "" ]; do
       remove_function g0 "$1"
