@@ -36,6 +36,11 @@ function check_usb_gadget () {
 }
 
 function create_mass_storage() {
+  if [ ! -f "$2" ]; then
+    echo "Cannot open image" >&2
+    exit 2
+  fi
+
   GADGET_NAME="$1"
   IMAGE_FILE="$(cd $(dirname $2) && pwd)/$(basename $2)"
   shift 2
@@ -50,6 +55,9 @@ function create_mass_storage() {
   FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
 
   echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
+  echo 0             > ${FUNCTION_DIR}/lun.0/removable
+  echo 0             > ${FUNCTION_DIR}/lun.0/ro
+  echo 0             > ${FUNCTION_DIR}/lun.0/cdrom
 
   while [ "$1" != "" ];
   do
@@ -75,6 +83,8 @@ function create_mass_storage() {
   if [ ! -d "${CONFIG_DIR}/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; then
     ln -s ${FUNCTION_DIR} ${CONFIG_DIR}/
   fi
+
+  echo ${FUNCTION_TYPE}.${FUNCTION_NAME}
 
   return
 }
