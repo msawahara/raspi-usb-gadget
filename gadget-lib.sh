@@ -35,6 +35,20 @@ function check_usb_gadget () {
   return 0
 }
 
+function new_id () {
+  GADGET_NAME="$1"
+  FUNCTION_TYPE="$2"
+  FUNCTION_NAME="0"
+
+  GADGET_DIR="${CONFIGFS_USB_GADGET}/${GADGET_NAME}"
+
+  while [ -d "${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}" ]; do
+    FUNCTION_NAME=$(expr ${FUNCTION_NAME} + 1)
+  done
+
+  echo "${FUNCTION_NAME}"
+}
+
 function create_mass_storage() {
   if [ ! -f "$2" ]; then
     echo "Cannot open image" >&2
@@ -46,7 +60,7 @@ function create_mass_storage() {
   shift 2
 
   FUNCTION_TYPE="mass_storage"
-  FUNCTION_NAME="0"
+  FUNCTION_NAME=$(new_id ${GADGET_NAME} ${FUNCTION_TYPE})
 
   create_function ${GADGET_NAME} ${FUNCTION_TYPE} ${FUNCTION_NAME}
 
