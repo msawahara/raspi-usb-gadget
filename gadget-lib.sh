@@ -54,10 +54,12 @@ function create_mass_storage() {
   CONFIG_DIR="${GADGET_DIR}/configs/c.1"
   FUNCTION_DIR="${GADGET_DIR}/functions/${FUNCTION_TYPE}.${FUNCTION_NAME}"
 
-  echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
-  echo 0             > ${FUNCTION_DIR}/lun.0/removable
-  echo 0             > ${FUNCTION_DIR}/lun.0/ro
-  echo 0             > ${FUNCTION_DIR}/lun.0/cdrom
+  # set default value
+  echo 1 > ${FUNCTION_DIR}/stall
+  echo 0 > ${FUNCTION_DIR}/lun.0/removable
+  echo 0 > ${FUNCTION_DIR}/lun.0/ro
+  echo 0 > ${FUNCTION_DIR}/lun.0/cdrom
+  echo 0 > ${FUNCTION_DIR}/lun.0/nofua
 
   while [ "$1" != "" ];
   do
@@ -71,12 +73,17 @@ function create_mass_storage() {
       "cdrom")
         echo 1 > ${FUNCTION_DIR}/lun.0/cdrom
         ;;
+      "nofua")
+        echo 1 > ${FUNCTION_DIR}/lun.0/nofua
+        ;;
       *)
         echo "invalid option: $1"
         ;;
     esac
     shift
   done
+
+  echo ${IMAGE_FILE} > ${FUNCTION_DIR}/lun.0/file
 
   mkdir -p ${CONFIG_DIR}
 
