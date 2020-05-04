@@ -1,13 +1,13 @@
-# raspi-hid
-Tools for use Raspberry Pi as human interface devices (HID) 
+# raspi-usb-gadget
+Tools for use Raspberry Pi as a USB gadget
 
 ## example
 
 ```shell
-# ./hid.sh create
-# ./hid.sh mass_storage /home/pi/image.bin cdrom
-# ./hid.sh enable
-# ./hid.sh disable
-# ./hid.sh remove mass_storage.0
-# ./hid.sh termiante
+# ./gadget.sh create
+# ./gadget.sh mass_storage /home/pi/image.bin cdrom
+# ./gadget.sh enable
+# ./gadget.sh disable
+# ./gadget.sh remove mass_storage.0
+# ./gadget.sh termiante
 ```
